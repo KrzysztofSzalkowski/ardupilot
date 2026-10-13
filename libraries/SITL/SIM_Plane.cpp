@@ -29,7 +29,6 @@ using namespace SITL;
 Plane::Plane(const char *frame_str) :
     Aircraft(frame_str)
 {
-
     const char *colon = strchr(frame_str, ':');
     size_t slen = strlen(frame_str);
     // The last 5 letters are ".json"
@@ -51,7 +50,7 @@ Plane::Plane(const char *frame_str) :
     /*
        scaling from motor power to Newtons. Allows the plane to hold
        vertically against gravity when the motor is at hover_throttle
-    */
+     */
     thrust_scale = (mass * GRAVITY_MSS) / hover_throttle;
     frame_height = 1.0f;
 
@@ -152,7 +151,7 @@ void Plane::load_coeffs(const char *model_json)
         void *ptr;
         VarType t;
     };
-    
+
     json_search vars[] = {
 #define COFF_FLOAT(s) { #s, &coefficient.s, VarType::FLOAT }
         COFF_FLOAT(s),
@@ -252,12 +251,12 @@ float Plane::liftCoeff(float alpha) const
     } else if (alpha0-alpha > max_alpha_delta) {
         alpha = alpha0 - max_alpha_delta;
     }
-	double sigmoid = ( 1+exp(-M*(alpha-alpha0))+exp(M*(alpha+alpha0)) ) / (1+exp(-M*(alpha-alpha0))) / (1+exp(M*(alpha+alpha0)));
-	double linear = (1.0-sigmoid) * (c_lift_0 + c_lift_a0*alpha); //Lift at small AoA
-	double flatPlate = sigmoid*(2*copysign(1,alpha)*pow(sin(alpha),2)*cos(alpha)); //Lift beyond stall
+    double sigmoid = ( 1+exp(-M*(alpha-alpha0))+exp(M*(alpha+alpha0)) ) / (1+exp(-M*(alpha-alpha0))) / (1+exp(M*(alpha+alpha0)));
+    double linear = (1.0-sigmoid) * (c_lift_0 + c_lift_a0*alpha); // Lift at small AoA
+    double flatPlate = sigmoid*(2*copysign(1,alpha)*pow(sin(alpha),2)*cos(alpha)); // Lift beyond stall
 
-	float result  = linear+flatPlate;
-	return result;
+    float result = linear+flatPlate;
+    return result;
 }
 
 float Plane::dragCoeff(float alpha) const
@@ -268,11 +267,11 @@ float Plane::dragCoeff(float alpha) const
     const float c_lift_0 = coefficient.c_lift_0;
     const float c_lift_a0 = coefficient.c_lift_a;
     const float oswald = coefficient.oswald;
-    
-	double AR = pow(b,2)/s;
-	double c_drag_a = c_drag_p + pow(c_lift_0+c_lift_a0*alpha,2)/(M_PI*oswald*AR);
 
-	return c_drag_a;
+    double AR = pow(b,2)/s;
+    double c_drag_a = c_drag_p + pow(c_lift_0+c_lift_a0*alpha,2)/(M_PI*oswald*AR);
+
+    return c_drag_a;
 }
 
 // Torque calculation function
@@ -280,7 +279,7 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
 {
     float alpha = angle_of_attack;
 
-	//calculate aerodynamic torque
+    // calculate aerodynamic torque
     float effective_airspeed = airspeed;
 
     if (tailsitter || aerobatic) {
@@ -292,7 +291,7 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
         // reduce effective angle of attack as thrust increases
         alpha *= constrain_float(1 - inputThrust, 0, 1);
     }
-    
+
     const float s = coefficient.s;
     const float c = coefficient.c;
     const float b = coefficient.b;
@@ -313,59 +312,55 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
     const float c_n_deltaa = coefficient.c_n_deltaa;
     const float c_n_deltar = coefficient.c_n_deltar;
     const Vector3f &CGOffset = coefficient.CGOffset;
-    
+
     float rho = air_density;
 
-	//read angular rates
-	double p = gyro.x;
-	double q = gyro.y;
-	double r = gyro.z;
+    // read angular rates
+    double p = gyro.x;
+    double q = gyro.y;
+    double r = gyro.z;
 
-	double qbar = 1.0/2.0*rho*pow(effective_airspeed,2)*s; //Calculate dynamic pressure
-	double la, na, ma;
-	if (is_zero(effective_airspeed))
-	{
-		la = 0;
-		ma = 0;
-		na = 0;
-	}
-	else
-	{
-        // ZABEZPIECZENIE: Zablokuj mianownik przed zejściem blisko zera
+    double qbar = 1.0/2.0*rho*pow(effective_airspeed,2)*s; // Calculate dynamic pressure
+    double la, na, ma;
+    if (is_zero(effective_airspeed))
+    {
+        la = 0;
+        ma = 0;
+        na = 0;
+    }
+    else
+    {
         float safe_airspeed = effective_airspeed < 3.0f ? 3.0f : effective_airspeed;
 
-		la = qbar*b*(c_l_0 + c_l_b*beta + c_l_p*b*p/(2*safe_airspeed) + c_l_r*b*r/(2*safe_airspeed) + c_l_deltaa*inputAileron + c_l_deltar*inputRudder);
-		ma = qbar*c*(c_m_0 + c_m_a*alpha + c_m_q*c*q/(2*safe_airspeed) + c_m_deltae*inputElevator);
-		na = qbar*b*(c_n_0 + c_n_b*beta + c_n_p*b*p/(2*safe_airspeed) + c_n_r*b*r/(2*safe_airspeed) + c_n_deltaa*inputAileron + c_n_deltar*inputRudder);
-	}
+        la = qbar*b*(c_l_0 + c_l_b*beta + c_l_p*b*p/(2*safe_airspeed) + c_l_r*b*r/(2*safe_airspeed) + c_l_deltaa*inputAileron + c_l_deltar*inputRudder);
+        ma = qbar*c*(c_m_0 + c_m_a*alpha + c_m_q*c*q/(2*safe_airspeed) + c_m_deltae*inputElevator);
+        na = qbar*b*(c_n_0 + c_n_b*beta + c_n_p*b*p/(2*safe_airspeed) + c_n_r*b*r/(2*safe_airspeed) + c_n_deltaa*inputAileron + c_n_deltar*inputRudder);
+    }
 
-// Add torque to force misalignment with CG
-	// r x F, where r is the distance from CoG to CoL
-	la +=  CGOffset.y * force.z - CGOffset.z * force.y;
-	ma += -CGOffset.x * force.z + CGOffset.z * force.x;
-	na += -CGOffset.y * force.x + CGOffset.x * force.y;
+    // Add torque to force misalignment with CG
+    // r x F, where r is the distance from CoG to CoL
+    la +=  CGOffset.y * force.z - CGOffset.z * force.y;
+    ma += -CGOffset.x * force.z + CGOffset.z * force.x;
+    na += -CGOffset.y * force.x + CGOffset.x * force.y;
 
-	// --- APLIKACJA TWOJEJ MACIERZY INERCJI ---
-	// Tensor bezwładności wyliczony z MATLABa [kg*m^2]
-	Matrix3f inertia(
-		 3091.0f,    0.0f, -2804.0f,
-		    0.0f,  8388.0f,    0.0f,
-		-2804.0f,    0.0f, 10757.0f
-	);
-// Odwrócenie macierzy (I^-1) z weryfikacją dla kompilatora
-	Matrix3f inertia_inv = inertia;
-	if (!inertia_inv.invert()) {
-		// Jeśli odwrócenie się nie uda, użyj bezpiecznego zera (nigdy nie nastąpi dla Twojej macierzy)
-		return Vector3f(0.0f, 0.0f, 0.0f);
-	}
-	// Wektor momentów aerodynamicznych
-	Vector3f moments(la, ma, na);
+    // Tensor bezwladnosci wyliczony z MATLABa [kg*m^2]
+    Matrix3f inertia(
+         3091.0f,    0.0f, -2804.0f,
+            0.0f,  8388.0f,    0.0f,
+        -2804.0f,    0.0f, 10757.0f
+    );
 
-	// Wyliczenie przyspieszenia kątowego: Epsilon = I^-1 * M
-	Vector3f rot_accel = inertia_inv * moments;
+    Matrix3f inertia_inv = inertia;
+    if (!inertia_inv.invert()) {
+        return Vector3f(0.0f, 0.0f, 0.0f);
+    }
 
-	return rot_accel;
+    Vector3f moments(la, ma, na);
+    Vector3f rot_accel = inertia_inv * moments;
+
+    return rot_accel;
 }
+
 // Force calculation function from last_letter
 Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRudder) const
 {
@@ -383,35 +378,34 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
     const float c_y_r = coefficient.c_y_r;
     const float c_y_deltaa = coefficient.c_y_deltaa;
     const float c_y_deltar = coefficient.c_y_deltar;
-    
+
     float rho = air_density;
 
-	//request lift and drag alpha-coefficients from the corresponding functions
-	double c_lift_a = liftCoeff(alpha);
-	double c_drag_a = dragCoeff(alpha);
+    // request lift and drag alpha-coefficients from the corresponding functions
+    double c_lift_a = liftCoeff(alpha);
+    double c_drag_a = dragCoeff(alpha);
 
-	//convert coefficients to the body frame
-	double c_x_a = -c_drag_a*cos(alpha)+c_lift_a*sin(alpha);
-	double c_x_q = -c_drag_q*cos(alpha)+c_lift_q*sin(alpha);
-	double c_z_a = -c_drag_a*sin(alpha)-c_lift_a*cos(alpha);
-	double c_z_q = -c_drag_q*sin(alpha)-c_lift_q*cos(alpha);
+    // convert coefficients to the body frame
+    double c_x_a = -c_drag_a*cos(alpha)+c_lift_a*sin(alpha);
+    double c_x_q = -c_drag_q*cos(alpha)+c_lift_q*sin(alpha);
+    double c_z_a = -c_drag_a*sin(alpha)-c_lift_a*cos(alpha);
+    double c_z_q = -c_drag_q*sin(alpha)-c_lift_q*cos(alpha);
 
-	//read angular rates
-	double p = gyro.x;
-	double q = gyro.y;
-	double r = gyro.z;
+    // read angular rates
+    double p = gyro.x;
+    double q = gyro.y;
+    double r = gyro.z;
 
-	//calculate aerodynamic force
-	double qbar = 1.0/2.0*rho*pow(airspeed,2)*s; //Calculate dynamic pressure
-	double ax, ay, az;
-	if (is_zero(airspeed))
-	{
-		ax = 0;
-		ay = 0;
-		az = 0;
-	}
-	else
-else
+    // calculate aerodynamic force
+    double qbar = 1.0/2.0*rho*pow(airspeed,2)*s; // Calculate dynamic pressure
+    double ax, ay, az;
+    if (is_zero(airspeed))
+    {
+        ax = 0;
+        ay = 0;
+        az = 0;
+    }
+    else
     {
         float safe_airspeed = airspeed < 3.0f ? 3.0f : airspeed;
         ax = qbar*(c_x_a + c_x_q*c*q/(2*safe_airspeed) - c_drag_deltae*cos(alpha)*fabs(inputElevator) + c_lift_deltae*sin(alpha)*inputElevator);
@@ -469,7 +463,6 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         elevator = (filtered_servo_angle(input, 1) + filtered_servo_angle(input, 9)) / 2.0;
         rudder   = (filtered_servo_angle(input, 3) + filtered_servo_angle(input, 11)) / 2.0;
     }
-    //printf("Aileron: %.1f elevator: %.1f rudder: %.1f\n", aileron, elevator, rudder);
 
     float thrust = reverse_thrust ? filtered_servo_angle(input, 2) : filtered_servo_range(input, 2);
 
@@ -481,11 +474,10 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         }
     }
 
-   // calculate angle of attack
+    // calculate angle of attack
     angle_of_attack = atan2f(velocity_air_bf.z, velocity_air_bf.x);
-    beta = atan2f(velocity_air_bf.y,velocity_air_bf.x);
+    beta = atan2f(velocity_air_bf.y, velocity_air_bf.x);
 
-    // 1. Zamrozenie AOA i beta przy malej predkosci na ziemi
     if (airspeed < 3.0f) {
         angle_of_attack = 0.0f;
         beta = 0.0f;
@@ -500,11 +492,10 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         rudder *= 4;
     }
 
-    // 2. Konwersja z [-1, 1] na radiany i dopasowanie znakow pod pochodne z MATLABa
     aileron  *= -coefficient.deltaa_max;
     elevator *= -coefficient.deltae_max;
     rudder   *= -coefficient.deltar_max;
-    
+
     Vector3f force = getForce(aileron, elevator, rudder);
     rot_accel = getTorque(aileron, elevator, rudder, thrust, force);
 
@@ -526,11 +517,11 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
             launch_start_ms = 0;
         }
     }
-    
+
     // simulate engine RPM
     motor_mask |= (1U<<2);
     rpm[2] = thrust * 7000;
-    
+
     // scale thrust to newtons
     thrust *= thrust_scale;
 
@@ -542,13 +533,13 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         add_noise(fabsf(thrust) / thrust_scale);
     }
 
-  if (on_ground() && !tailsitter) {
+    if (on_ground() && !tailsitter) {
         // add some ground friction
         Vector3f vel_body = dcm.transposed() * velocity_ef;
         accel_body.x -= vel_body.x * 0.02f;
     }
 }
-    
+
 /*
   update the plane simulation by one time step
  */
@@ -557,7 +548,7 @@ void Plane::update(const struct sitl_input &input)
     Vector3f rot_accel;
 
     update_wind(input);
-    
+
     calculate_forces(input, rot_accel);
     update_battery(input);
     update_dynamics(rot_accel);
@@ -565,7 +556,7 @@ void Plane::update(const struct sitl_input &input)
     /*
       add in ground steering, this should be replaced with a proper
       calculation of a nose wheel effect
-    */
+     */
     if (have_steering && on_ground()) {
         const float steering = filtered_servo_angle(input, 4);
         const Vector3f velocity_bf = dcm.transposed() * velocity_ef;
