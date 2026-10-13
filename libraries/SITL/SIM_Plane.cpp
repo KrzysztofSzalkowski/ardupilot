@@ -20,6 +20,7 @@
 #include "SIM_Plane.h"
 
 #include <stdio.h>
+#include <AP_Math/AP_Math.h>
 #include <AP_Filesystem/AP_Filesystem_config.h>
 #include <AP_Filesystem/AP_Filesystem.h>
 
@@ -45,14 +46,14 @@ Plane::Plane(const char *frame_str) :
                   sitl->batt_voltage,
                   ambient_outside_temperature_degC());
 
-    mass = 2.0f;
+    mass = 3536.0f;
 
     /*
        scaling from motor power to Newtons. Allows the plane to hold
        vertically against gravity when the motor is at hover_throttle
     */
     thrust_scale = (mass * GRAVITY_MSS) / hover_throttle;
-    frame_height = 0.1f;
+    frame_height = 1.0f;
 
     ground_behavior = GROUND_BEHAVIOR_FWD_ONLY;
     lock_step_scheduled = true;
@@ -330,21 +331,40 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
 	}
 	else
 	{
-		la = qbar*b*(c_l_0 + c_l_b*beta + c_l_p*b*p/(2*effective_airspeed) + c_l_r*b*r/(2*effective_airspeed) + c_l_deltaa*inputAileron + c_l_deltar*inputRudder);
-		ma = qbar*c*(c_m_0 + c_m_a*alpha + c_m_q*c*q/(2*effective_airspeed) + c_m_deltae*inputElevator);
-		na = qbar*b*(c_n_0 + c_n_b*beta + c_n_p*b*p/(2*effective_airspeed) + c_n_r*b*r/(2*effective_airspeed) + c_n_deltaa*inputAileron + c_n_deltar*inputRudder);
+        // ZABEZPIECZENIE: Zablokuj mianownik przed zejściem blisko zera
+        float safe_airspeed = effective_airspeed < 3.0f ? 3.0f : effective_airspeed;
+
+		la = qbar*b*(c_l_0 + c_l_b*beta + c_l_p*b*p/(2*safe_airspeed) + c_l_r*b*r/(2*safe_airspeed) + c_l_deltaa*inputAileron + c_l_deltar*inputRudder);
+		ma = qbar*c*(c_m_0 + c_m_a*alpha + c_m_q*c*q/(2*safe_airspeed) + c_m_deltae*inputElevator);
+		na = qbar*b*(c_n_0 + c_n_b*beta + c_n_p*b*p/(2*safe_airspeed) + c_n_r*b*r/(2*safe_airspeed) + c_n_deltaa*inputAileron + c_n_deltar*inputRudder);
 	}
 
-
-	// Add torque to force misalignment with CG
+// Add torque to force misalignment with CG
 	// r x F, where r is the distance from CoG to CoL
 	la +=  CGOffset.y * force.z - CGOffset.z * force.y;
 	ma += -CGOffset.x * force.z + CGOffset.z * force.x;
 	na += -CGOffset.y * force.x + CGOffset.x * force.y;
 
-	return Vector3f(la, ma, na);
-}
+	// --- APLIKACJA TWOJEJ MACIERZY INERCJI ---
+	// Tensor bezwładności wyliczony z MATLABa [kg*m^2]
+	Matrix3f inertia(
+		 3091.0f,    0.0f, -2804.0f,
+		    0.0f,  8388.0f,    0.0f,
+		-2804.0f,    0.0f, 10757.0f
+	);
 
+	// Odwrócenie macierzy (I^-1)
+	Matrix3f inertia_inv = inertia;
+	inertia_inv.invert();
+
+	// Wektor momentów aerodynamicznych
+	Vector3f moments(la, ma, na);
+
+	// Wyliczenie przyspieszenia kątowego: Epsilon = I^-1 * M
+	Vector3f rot_accel = inertia_inv * moments;
+
+	return rot_accel;
+}
 // Force calculation function from last_letter
 Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRudder) const
 {
