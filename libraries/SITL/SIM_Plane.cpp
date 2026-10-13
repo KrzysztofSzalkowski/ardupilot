@@ -352,11 +352,12 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
 		    0.0f,  8388.0f,    0.0f,
 		-2804.0f,    0.0f, 10757.0f
 	);
-
-	// Odwrócenie macierzy (I^-1)
+// Odwrócenie macierzy (I^-1) z weryfikacją dla kompilatora
 	Matrix3f inertia_inv = inertia;
-	inertia_inv.invert();
-
+	if (!inertia_inv.invert()) {
+		// Jeśli odwrócenie się nie uda, użyj bezpiecznego zera (nigdy nie nastąpi dla Twojej macierzy)
+		return Vector3f(0.0f, 0.0f, 0.0f);
+	}
 	// Wektor momentów aerodynamicznych
 	Vector3f moments(la, ma, na);
 
