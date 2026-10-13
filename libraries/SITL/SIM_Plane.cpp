@@ -411,13 +411,15 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
 		az = 0;
 	}
 	else
-	{
-		ax = qbar*(c_x_a + c_x_q*c*q/(2*airspeed) - c_drag_deltae*cos(alpha)*fabs(inputElevator) + c_lift_deltae*sin(alpha)*inputElevator);
-		// split c_x_deltae to include "abs" term
-		ay = qbar*(c_y_0 + c_y_b*beta + c_y_p*b*p/(2*airspeed) + c_y_r*b*r/(2*airspeed) + c_y_deltaa*inputAileron + c_y_deltar*inputRudder);
-		az = qbar*(c_z_a + c_z_q*c*q/(2*airspeed) - c_drag_deltae*sin(alpha)*fabs(inputElevator) - c_lift_deltae*cos(alpha)*inputElevator);
-		// split c_z_deltae to include "abs" term
-	}
+else
+    {
+        float safe_airspeed = airspeed < 3.0f ? 3.0f : airspeed;
+        ax = qbar*(c_x_a + c_x_q*c*q/(2*safe_airspeed) - c_drag_deltae*cos(alpha)*fabs(inputElevator) + c_lift_deltae*sin(alpha)*inputElevator);
+        // split c_x_deltae to include "abs" term
+        ay = qbar*(c_y_0 + c_y_b*beta + c_y_p*b*p/(2*safe_airspeed) + c_y_r*b*r/(2*safe_airspeed) + c_y_deltaa*inputAileron + c_y_deltar*inputRudder);
+        az = qbar*(c_z_a + c_z_q*c*q/(2*safe_airspeed) - c_drag_deltae*sin(alpha)*fabs(inputElevator) - c_lift_deltae*cos(alpha)*inputElevator);
+        // split c_z_deltae to include "abs" term
+    }
     return Vector3f(ax, ay, az);
 }
 
@@ -479,9 +481,15 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         }
     }
 
-    // calculate angle of attack
+   // calculate angle of attack
     angle_of_attack = atan2f(velocity_air_bf.z, velocity_air_bf.x);
     beta = atan2f(velocity_air_bf.y,velocity_air_bf.x);
+
+    // 1. Zamrozenie AOA i beta przy malej predkosci na ziemi
+    if (airspeed < 3.0f) {
+        angle_of_attack = 0.0f;
+        beta = 0.0f;
+    }
 
     if (tailsitter || aerobatic) {
         /*
@@ -491,6 +499,11 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         elevator *= 4;
         rudder *= 4;
     }
+
+    // 2. Konwersja z [-1, 1] na radiany i dopasowanie znakow pod pochodne z MATLABa
+    aileron  *= -coefficient.deltaa_max;
+    elevator *= -coefficient.deltae_max;
+    rudder   *= -coefficient.deltar_max;
     
     Vector3f force = getForce(aileron, elevator, rudder);
     rot_accel = getTorque(aileron, elevator, rudder, thrust, force);
@@ -529,10 +542,10 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         add_noise(fabsf(thrust) / thrust_scale);
     }
 
-    if (on_ground() && !tailsitter) {
+  if (on_ground() && !tailsitter) {
         // add some ground friction
         Vector3f vel_body = dcm.transposed() * velocity_ef;
-        accel_body.x -= vel_body.x * 0.3f;
+        accel_body.x -= vel_body.x * 0.02f;
     }
 }
     
