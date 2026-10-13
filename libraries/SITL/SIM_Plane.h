@@ -49,47 +49,47 @@ protected:
     const struct Coefficients {
         // from last_letter skywalker_2013/aerodynamics.yaml
         // thanks to Georacer!
-        float s = 0.45;
-        float b = 1.88;
-        float c = 0.24;
-        float c_lift_0 = 0.56;
-        float c_lift_deltae = 0;
-        float c_lift_a = 6.9;
-        float c_lift_q = 0;
-        float mcoeff = 50;
-        float oswald = 0.9;
-        float alpha_stall = 0.4712;
-        float c_drag_q = 0;
-        float c_drag_deltae = 0.0;
-        float c_drag_p = 0.1;
-        float c_y_0 = 0;
-        float c_y_b = -0.98;
-        float c_y_p = 0;
-        float c_y_r = 0;
-        float c_y_deltaa = 0;
-        float c_y_deltar = -0.2;
-        float c_l_0 = 0;
-        float c_l_p = -1.0;
-        float c_l_b = -0.12;
-        float c_l_r = 0.14;
-        float c_l_deltaa = 0.25;
-        float c_l_deltar = -0.037;
-        float c_m_0 = 0.045;
-        float c_m_a = -0.7;
-        float c_m_q = -20;
-        float c_m_deltae = 1.0;
-        float c_n_0 = 0;
-        float c_n_b = 0.25;
-        float c_n_p = 0.022;
-        float c_n_r = -1;
-        float c_n_deltaa = 0.00;
-        float c_n_deltar = 0.1;
-        float deltaa_max = 0.3491;
-        float deltae_max = 0.3491;
-        float deltar_max = 0.3491;
+        float s = 14.58;            // Powierzchnia nośna S
+        float b = 8.88;             // Rozpiętość b
+        float c = 1.76;             // Średnia cięciwa aerodynamiczna Ca
+       float c_lift_0 = 0.00063;   // -Aero_Cz_Base dla alpha = 0 st.
+        float c_lift_deltae = 0.4578; // -Cz_dh
+        float c_lift_a = 4.5627;    // Gradient d(Cl)/d(alpha) pomiędzy -1 a 1 st.
+        float c_lift_q = 7.1187;    // -Cz_dq
+        float mcoeff = 50;          // Pozostawiono domyślne
+        float oswald = 0.9;         // Pozostawiono domyślne
+        float alpha_stall = 0.4712; // Pozostawiono domyślne
+        float c_drag_q = -0.0589;   // -Cx_dq (w układzie body drag to -X)
+        float c_drag_deltae = 0.0;  // Brak danych w modelu
+        float c_drag_p = 0.1;       // Pozostawiono domyślne
+        float c_y_0 = 0;            // Brak danych bazowych dla C_y_0
+        float c_y_b = -0.2545;      // CydBeta dla alpha = 0 st.
+        float c_y_p = 0.0225;       // CydP
+        float c_y_r = 0.2228;       // CydR
+        float c_y_deltaa = 0;       // Brak danych w modelu
+        float c_y_deltar = 0.1723;  // CydDv
+        float c_l_0 = 0;            // Brak danych bazowych dla C_l_0
+        float c_l_p = -0.3795;      // CldP
+        float c_l_b = -0.0162;      // CldBeta dla alpha = 0 st.
+        float c_l_r = 0.0088;       // CldR
+        float c_l_deltaa = -0.2234; // CldDl
+        float c_l_deltar = 0.0118;  // CldDv
+        float c_m_0 = -0.0050;      // Aero_Cm_Base dla alpha = 0 st.
+        float c_m_a = -0.2392;      // Gradient d(Cm)/d(alpha) pomiędzy -1 a 1 st.
+        float c_m_q = -8.7749;      // Cm_dq
+        float c_m_deltae = -1.3747; // Cm_dh
+        float c_n_0 = 0;            // Brak danych bazowych dla C_n_0
+        float c_n_b = 0.0642;       // CndBeta dla alpha = 0 st.
+        float c_n_p = -0.0129;      // CndP
+        float c_n_r = -0.0972;      // CndR
+        float c_n_deltaa = 0.0046;  // CndDl
+        float c_n_deltar = -0.1174; // CndDv
+        float deltaa_max = 0.3491;  // Pozostawiono domyślne
+        float deltae_max = 0.3491;  // Pozostawiono domyślne
+        float deltar_max = 0.3491;  // Pozostawiono domyślne
         // the X CoG offset should be -0.02, but that makes the plane too tail heavy
         // in manual flight. Adjusted to -0.15 gives reasonable flight
-        Vector3f CGOffset{-0.15, 0, -0.05};
+        Vector3f CGOffset{0, 0, 0};
     } default_coefficients;
 
     struct Coefficients coefficient;
